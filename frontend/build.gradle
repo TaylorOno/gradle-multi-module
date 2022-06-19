@@ -1,0 +1,57 @@
+import com.github.gradle.node.NodeExtension
+import com.github.gradle.node.variant.VariantComputer
+
+plugins {
+    id "com.github.node-gradle.node" version "3.3.0"
+}
+
+node {
+    download = true
+    version = "16.14.0"
+}
+
+static String nodeExec(nodeExtension) {
+    VariantComputer variant = new VariantComputer()
+    def nodeDirProvider = variant.computeNodeDir(nodeExtension)
+    def nodeBinDirProvider = variant.computeNodeBinDir(nodeDirProvider)
+    def executableProvider = variant.computeNodeExec(nodeExtension, nodeBinDirProvider)
+    return executableProvider.get()
+}
+
+sonarqube {
+    properties {
+        property "sonar.sources", "src"
+        property "sonar.exclusions", "**/*.test.tsx,**/*test.ts"
+        property "sonar.tests", "src"
+        property "sonar.test.inclusions", "**/*.test.tsx,**/*test.ts"
+        property "sonar.nodejs.executable", nodeExec(project.extensions.getByType(NodeExtension))
+        property "sonar.typescript.lcov.reportPaths", "coverage/lcov.info"
+        property "sonar.testExecutionReportPaths", "test-report.xml"
+    }
+}
+
+task reactTest(type: NpmTask) {
+    group("verification")
+    dependsOn(npmInstall)
+    inputs.dir('src')
+    outputs.file('test-report.xml')
+    args = ["run", "test"]
+}
+
+task reactBuild(type: NpmTask) {
+    group("build")
+    dependsOn(reactTest)
+    inputs.dir('src')
+    outputs.dir('build')
+    environment = ['BUILD_PATH': 'build/static']
+    args = ["run", "build"]
+}
+
+task reactRun(type: NpmTask) {
+    group("application")
+    args = ["run", "start"]
+}
+
+task test {
+    dependsOn(reactTest)
+}

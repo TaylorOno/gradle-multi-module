@@ -1,0 +1,56 @@
+plugins {
+	id 'org.springframework.boot' version '2.7.0'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'jacoco'
+	id 'java'
+}
+
+group = 'com.github.taylorono'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+sourceSets {
+	main {
+		resources {
+			srcDir '../frontend/build'
+		}
+	}
+}
+
+jacocoTestReport {
+	reports {
+		xml.enabled true
+		xml.required = true
+		xml.destination file("${buildDir}/reports/jacoco.xml")
+	}
+}
+
+plugins.withType(JacocoPlugin) {
+	tasks["test"].finalizedBy 'jacocoTestReport'
+}
+
+sonarqube {
+	properties {
+		property "sonar.sources", "src/main"
+		property "sonar.tests", "src/test"
+		property "sonar.java.coveragePlugin", "jacoco"
+		property "sonar.coverage.jacoco.xmlReportPath", "${buildDir}/reports/jacoco.xml"
+	}
+}
+
+tasks.named("processResources") {
+	dependsOn ':frontend:reactBuild'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
